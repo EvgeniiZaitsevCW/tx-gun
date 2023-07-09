@@ -4,7 +4,7 @@ set -euo pipefail
 
 RPC_URL_FOR_SENDING="http://localhost:8545"
 RPC_URL_FOR_READING=$RPC_URL_FOR_SENDING
-FILES_SUFFIX="op_local_common"
+FILES_SUFFIX="net-local"
 
 ## The PK array
 declare -a PKS=(
