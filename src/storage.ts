@@ -152,7 +152,7 @@ class Storage {
     return stringify(
       [[
         "index",                   // 01
-        "header",                  // 02
+        "hash",                    // 02
         "sending block number",    // 03
         "sending timestamp",       // 04
         "minting delay in blocks", // 05
