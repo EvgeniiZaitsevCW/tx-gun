@@ -2,11 +2,26 @@
 
 set -euo pipefail
 
-RPC_URL_FOR_SENDING="http://localhost:8545"
-RPC_URL_FOR_READING=$RPC_URL_FOR_SENDING
-FILES_SUFFIX="net-local"
+################################################################################
+# Input parameters
+################################################################################
 
-## The PK array
+RPC_URL_FOR_SENDING="http://localhost:8333"    # The RPC URL for sending transactions
+RPC_URL_FOR_READING=$RPC_URL_FOR_SENDING       # The RPC URL for reading the blockchain state
+TX_RATE=100                                    # The target transaction sending rate in tx/s
+DURATION=10                                    # The duration of transaction sending in seconds
+TX_KIND="erc20-transfer"                       # The kind of the transactions to send
+SENT_ETH_VALUE=0                               # The value of Ether or other native tokens to be sent in transactions
+SENT_AMOUNT=0                                  # The amount argument for a contract function call if it is needed
+
+# The contract address if it is needed
+CONTRACT_ADDRESS="0x541F23C66D131B7d35214401AEC745d7aBB07561"
+
+# A suffix that will be added to the result files along with the utility instance index
+# like `out_tx_stat_some-net_03__2023-08-31_18-18-58_746.csv`
+FILES_SUFFIX="some-net"
+
+## The PK array. Its length defines the number of utility instances to run
 declare -a PKS=(
   "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
@@ -20,7 +35,7 @@ declare -a PKS=(
   "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
 )
 
-## The addresses to send
+# The addresses to send. This array length should be equal to the PKS array length
 declare -a TO_ADDRESSES=(
   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
@@ -34,8 +49,10 @@ declare -a TO_ADDRESSES=(
   "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
 )
 
-TX_RATE=3
-DURATION=5
+################################################################################
+# Main code
+################################################################################
+
 SCRIPTPATH="$(
   cd -- "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
@@ -45,11 +62,16 @@ PARENTDIR="$(dirname "$SCRIPTPATH")"
 for INX in ${!PKS[*]}; do
   export PK_INDEX=$INX
   export SP_RPC_URL_FOR_SENDING=$RPC_URL_FOR_SENDING
+  export SP_RPC_URL_FOR_READING=$RPC_URL_FOR_READING
   export SP_FROM_PRIVATE_KEY=${PKS[$INX]}
   export SP_TO_STATIC_ADDRESS=${TO_ADDRESSES[$INX]}
   export SP_TXS_PER_SECOND_RATE=$TX_RATE
-  export SP_SENDING_DURATION_INSECONDS=$DURATION
-  export SP_OUT_FILES_SUFFIX=$(printf '%s_%02d__' $FILES_SUFFIX $INX)
+  export SP_SENDING_DURATION_IN_SECONDS=$DURATION
+  export SP_TX_KIND=$TX_KIND
+  export SP_SENT_ETH_VALUE=$SENT_ETH_VALUE
+  export SP_SENT_AMOUNT=$SENT_AMOUNT
+  export SP_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
+  export SP_OUT_FILES_SUFFIX=$(printf '%s_%02d_' $FILES_SUFFIX $INX)
 
   gnome-terminal --working-directory="$PARENTDIR" -- bash -c 'echo "PK_INDEX=$PK_INDEX"; npx ts-node src/index.ts; exec bash'
 done
