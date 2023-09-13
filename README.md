@@ -136,3 +136,4 @@ So we get the block numbers and transaction hashes at one in a single response. 
 
 ## Additional tools
 * [scripts/send_parallel.sh](scripts/send_parallel.sh) -- a script to run several instances of the utility to send transactions in parallel. The number of instances is defined by the number of private keys in the script.
+* [scripts/send_parallel_with_tee.sh](scripts/send_parallel_with_tee.sh) -- the same as the script above, but it does not spawn a new terminal window for each utility instance. It just runs several instances in background with redirecting their output logs to console and predefined files (like `instance07.log`).
