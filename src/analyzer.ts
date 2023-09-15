@@ -122,7 +122,7 @@ function updateBlockNumbers(
   blockBatchSize: number
 ): number {
   if (newLastBlockNumber > lastBlockNumber) {
-    let blockNumber = lastBlockNumber;
+    let blockNumber = lastBlockNumber + 1;
     for (; blockNumber <= newLastBlockNumber; ++blockNumber) {
       blockNumbers.add(blockNumber);
       if (blockNumbers.size >= blockBatchSize) {
