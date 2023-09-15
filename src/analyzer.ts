@@ -11,7 +11,7 @@ import {
 import { Logger } from "./logger";
 import axios, { AxiosResponse } from "axios";
 import { Context } from "./context";
-import { collectStatistics } from "./utils";
+import { collectStatistics, wait } from "./utils";
 
 const requestConfig = {
   headers: { "Content-Type": "application/json" }
@@ -154,12 +154,31 @@ function updateTxResult(blockReceipt: BlockReceipt, txResult: TransactionResult 
   }
 }
 
+async function logExceptionAndWait(errorCounter: number, logger: Logger, e: any) {
+  const waitDuration = 2000;
+  const continueMessage: string = (errorCounter > 0)
+    ? `Execution will be continued after ${waitDuration} ms wait. `
+    : `Execution stopped due to a large number of errors. `;
+  logger.log(
+    `❌ An exception has occurred during block data fetching. ` +
+    `The number of remaining attempts: ${errorCounter}. ` + continueMessage +
+    `The error message: ` + e.message
+  );
+  if (errorCounter > 0) {
+    await wait(waitDuration);
+  }
+}
+
 export async function awaitTransactionMinting(context: Context, logger: Logger): Promise<Set<string>> {
-  const endTime = Date.now() + context.config.txsMintingTimeoutInSeconds * 1000;
+  let timeoutActivated = false;
+  let endTime = Number.MAX_SAFE_INTEGER;
+  let errorCounter = context.config.blockFetchingErrorCountLimit;
   const hashes: Set<string> = new Set();
+  let lastSendingBlock = 0;
   context.txResults.forEach(txResult => {
     if (!txResult.blockNumberMining && !!txResult.txRequest.hash) {
       hashes.add(txResult.txRequest.hash);
+      lastSendingBlock = Math.max(txResult.blockNumberSending, lastSendingBlock);
     }
   });
   const blockBatchSize: number = 10;
@@ -169,7 +188,7 @@ export async function awaitTransactionMinting(context: Context, logger: Logger):
     blockNumbers.add(i + context.firstSendingBlockNumber);
   }
 
-  while (hashes.size > 0 && Date.now() < endTime) {
+  while (hashes.size > 0 && Date.now() < endTime && errorCounter != 0) {
     const dataObjects: any[] = prepareRequestDataObjects(blockNumbers, lastBlockNumber);
     try {
       const resp: AxiosResponse = await axios.post(context.config.rpcUrlForReading, dataObjects, requestConfig);
@@ -182,6 +201,14 @@ export async function awaitTransactionMinting(context: Context, logger: Logger):
           updateTxResult(blockReceipt, context.txResults.get(txHash));
         });
         updateBlockReceiptCollection(context.blockReceiptCollection, blockReceipt);
+        if (blockReceipt.number == lastSendingBlock && !timeoutActivated) {
+          timeoutActivated = true;
+          logger.log(
+            `👉 The last sending block (${lastSendingBlock}) has been processed. ` +
+            `The transaction minting timeout (${context.config.txsMintingTimeoutInSeconds} s) has been activated`
+          );
+          endTime = Date.now() + context.config.txsMintingTimeoutInSeconds * 1000;
+        }
       });
       lastBlockNumber = updateBlockNumbers(blockNumbers, lastBlockNumber, newLastBlockNumber, blockBatchSize);
       if (blockReceipts.length > 0) {
@@ -193,8 +220,10 @@ export async function awaitTransactionMinting(context: Context, logger: Logger):
           `The number of remaining txs to confirm minting: ${hashes.size}`
         );
       }
+      errorCounter = context.config.blockFetchingErrorCountLimit;
     } catch (e: any) {
-      logger.log(`❌ An exception has occurred. The requesting will be continued. The error message: ` + e.message);
+      --errorCounter;
+      await logExceptionAndWait(errorCounter, logger, e);
     }
   }
 

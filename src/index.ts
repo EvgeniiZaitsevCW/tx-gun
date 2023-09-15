@@ -35,6 +35,7 @@ const inputParams: InputParams = {
   pauseBeforeNextBatch: parseInt(process.env.SP_PAUSE_BEFORE_NEXT_BATCH ?? "0"),
   awaitTxsMinting: (process.env.SP_AWAIT_TXS_MINTING ?? "true") === "true",
   txsMintingTimeoutInSeconds: parseInt(process.env.SP_TXS_MINTING_TIMEOUT_IN_SECONDS ?? "60"),
+  blockFetchingErrorCountLimit: parseInt(process.env.SP_BLOCK_FETCHING_ERROR_COUNT_LIMIT ?? "10"),
   outTxsFileName: process.env.SP_OUT_TXS_FILE_NAME ?? "out_txs",
   outBlocksFileName: process.env.SP_OUT_BlOCKS_FILE_NAME ?? "out_blocks",
   outTxStatFileName: process.env.SP_OUT_TX_STAT_FILE_NAME ?? "out_tx_stat",

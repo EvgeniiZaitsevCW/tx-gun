@@ -31,6 +31,7 @@ export interface InputParams {
   pauseBeforeNextBatch: number
   awaitTxsMinting: boolean;
   txsMintingTimeoutInSeconds: number;
+  blockFetchingErrorCountLimit: number;
   outTxsFileName: string;
   outBlocksFileName: string;
   outTxStatFileName: string;
